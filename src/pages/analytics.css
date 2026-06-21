@@ -1,0 +1,111 @@
+/* Fleet Analytics — admin-only dashboards. Prefixed `an-` to avoid collisions. */
+
+.an-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.an-grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.an-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.an-grid-line { stroke: #EDF0F7; stroke-width: 1; }
+.an-axis-line { stroke: var(--border); stroke-width: 1; }
+.an-axis-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; fill: var(--mut); }
+
+/* area / line */
+.an-area { fill: var(--mint); opacity: .85; }
+.an-line { fill: none; stroke: var(--teal); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.an-dot { fill: #fff; stroke: var(--teal); stroke-width: 2; }
+
+/* mttr bars */
+.an-bar-mttr { fill: var(--teal); transition: opacity .18s; }
+.an-bar-mttr:hover { opacity: .82; }
+.an-bar-cap { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; fill: var(--navy); font-weight: 600; }
+
+/* horizontal tactic bars */
+.an-hbar { display: grid; gap: 11px; }
+.an-hbar-row { display: grid; grid-template-columns: 130px 1fr 38px; align-items: center; gap: 10px; }
+.an-hbar-label { font-size: 12.5px; font-weight: 700; color: var(--slate); text-align: right; }
+.an-hbar-track { background: #EDF0F7; border-radius: 7px; height: 14px; overflow: hidden; }
+.an-hbar-fill { height: 100%; background: linear-gradient(90deg, var(--teal-d), var(--teal)); border-radius: 7px; }
+.an-hbar-val { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--navy); font-weight: 600; text-align: right; }
+
+/* env bars */
+.an-env { display: grid; gap: 12px; }
+.an-env-row { display: grid; grid-template-columns: 1fr; gap: 4px; }
+.an-env-top { display: flex; justify-content: space-between; align-items: baseline; }
+.an-env-name { font-size: 12.5px; font-weight: 700; color: var(--slate); }
+.an-env-pct { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--navy); font-weight: 600; }
+.an-env-track { background: #EDF0F7; border-radius: 6px; height: 10px; overflow: hidden; }
+.an-env-fill { height: 100%; border-radius: 6px; }
+
+/* donut + legend */
+.an-donut-wrap { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.an-donut-center { font-family: 'Fredoka', sans-serif; font-weight: 600; fill: var(--navy); }
+.an-donut-centersub { font-family: 'Nunito', sans-serif; font-weight: 700; fill: var(--mut); }
+.an-legend { display: grid; gap: 9px; flex: 1; min-width: 150px; }
+.an-legend-row { display: flex; align-items: center; gap: 9px; font-size: 12.5px; }
+.an-legend-sw { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.an-legend-name { color: var(--slate); font-weight: 700; flex: 1; }
+.an-legend-val { font-family: 'JetBrains Mono', monospace; color: var(--navy); font-weight: 600; }
+
+/* team table */
+.an-table { width: 100%; border-collapse: collapse; }
+.an-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--mut);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.an-table th.an-r, .an-table td.an-r { text-align: right; }
+.an-table td {
+  padding: 11px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--navy);
+}
+.an-table tr:last-child td { border-bottom: none; }
+.an-table tr:hover td { background: #FAFBFE; }
+.an-team-name { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600; color: var(--navy); }
+
+.an-prog { display: flex; align-items: center; gap: 8px; }
+.an-prog-track { background: #EDF0F7; border-radius: 5px; height: 8px; width: 92px; overflow: hidden; }
+.an-prog-fill { height: 100%; background: var(--teal); border-radius: 5px; }
+.an-prog-num { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--slate); font-weight: 600; min-width: 34px; }
+
+.an-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 9px;
+  border-radius: 999px;
+  letter-spacing: .02em;
+}
+.an-badge.high { background: #FBE6E3; color: var(--crit); }
+.an-badge.medium { background: #FBF0DD; color: #B57612; }
+.an-badge.low { background: var(--mint); color: var(--teal-d); }
+
+@media (max-width: 980px) {
+  .an-grid, .an-grid3 { grid-template-columns: 1fr; }
+  .an-hbar-row { grid-template-columns: 110px 1fr 34px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .an-bar-mttr, .an-kc { transition: none; }
+}
