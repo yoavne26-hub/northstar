@@ -2,63 +2,72 @@ import './redblue.css'
 import { useMemo, useState } from 'react'
 import { AppShell } from '../components/layout/AppShell'
 import {
-  SCENARIOS, PHASES, generateDataset, scanDataset,
-  type Row, type Phase, type Scenario, type ScanResult, type Band,
+  SCENARIOS, PHASES, generateDataset, scanDataset, combinedMix,
+  type Row, type Phase, type ScanResult, type Band,
 } from '../data/redblue'
 
 const BAND_COLOR: Record<Band, string> = { HIGH: '#E04A3B', GRAY: '#E6A23C', LOW: '#8A92A8' }
 
 // ---------- RED TEAM ----------
-function PhaseMix({ scn }: { scn: Scenario }): JSX.Element {
-  const max = Math.max(...PHASES.map((p) => scn.mix[p.key]))
+function PhaseMix({ mix }: { mix: Record<Phase, number> }): JSX.Element {
+  const max = Math.max(1, ...PHASES.map((p) => mix[p.key]))
   return (
     <div className="rb-mix">
       {PHASES.map((p) => (
         <div className="rb-mixrow" key={p.key}>
           <span className="rb-mixlbl">{p.label}</span>
-          <div className="rb-mixbar"><i style={{ width: `${(scn.mix[p.key] / max) * 100}%` }} /></div>
-          <span className="rb-mixval num">{scn.mix[p.key]}</span>
+          <div className="rb-mixbar"><i style={{ width: `${(mix[p.key] / max) * 100}%` }} /></div>
+          <span className="rb-mixval num">{mix[p.key]}</span>
         </div>
       ))}
     </div>
   )
 }
 
-function RedPanel({ scenarioKey, setScenarioKey, dataset, regenerate }: {
-  scenarioKey: string; setScenarioKey: (k: string) => void; dataset: Row[]; regenerate: () => void
+function RedPanel({ scenarioKeys, toggle, dataset, regenerate }: {
+  scenarioKeys: string[]; toggle: (k: string) => void; dataset: Row[]; regenerate: () => void
 }): JSX.Element {
-  const scn = SCENARIOS.find((s) => s.key === scenarioKey) ?? SCENARIOS[0]
+  const selected = SCENARIOS.filter((s) => scenarioKeys.includes(s.key))
+  const mix = combinedMix(scenarioKeys)
   const mal = dataset.filter((r) => r.label === 'malicious')
   const benign = dataset.length - mal.length
   const byPhase = (ph: Phase) => mal.filter((m) => m.phase === ph)
+  const title = selected.length === 1 ? selected[0].label : `Blended · ${selected.length} scenarios`
+  const story = selected.length === 1
+    ? selected[0].story
+    : `A blended campaign combining ${selected.map((s) => s.label).join(', ')}. The malicious slice mixes each scenario's signature phases into one kill chain, so the 20 commands span ${selected.map((s) => s.label.toLowerCase()).join(' + ')} behavior.`
 
   return (
     <div className="rb-body">
       <div className="rb-intro red">
         <div>
           <h2>AttackGen — adversary simulator</h2>
-          <p>Pick a scenario. The engine builds a weighted kill chain — exactly <b>20 malicious</b> commands hidden in benign noise — then hands the labeled dataset to the Blue tab.</p>
+          <p>Select <b>one or more</b> scenarios. The engine blends their weighted kill chains into one dataset — exactly <b>20 malicious</b> commands hidden in benign noise — then hands it to the Blue tab.</p>
         </div>
       </div>
 
       <div className="rb-scenarios">
-        {SCENARIOS.map((s) => (
-          <button key={s.key} className={`rb-scn${s.key === scenarioKey ? ' on' : ''}`} onClick={() => setScenarioKey(s.key)}>
-            <span className="rb-scn-name">{s.label}</span>
-            <span className="rb-scn-desc">{s.desc}</span>
-          </button>
-        ))}
+        {SCENARIOS.map((s) => {
+          const on = scenarioKeys.includes(s.key)
+          return (
+            <button key={s.key} className={`rb-scn${on ? ' on' : ''}`} onClick={() => toggle(s.key)} aria-pressed={on}>
+              <span className="rb-check">{on ? '✓' : '+'}</span>
+              <span className="rb-scn-name">{s.label}</span>
+              <span className="rb-scn-desc">{s.desc}</span>
+            </button>
+          )
+        })}
       </div>
 
       <div className="rb-grid">
         <div className="panel">
-          <div className="ph"><div className="t">Kill-chain weighting · {scn.label}</div><div className="s">malicious mix (Σ = 20)</div></div>
-          <PhaseMix scn={scn} />
+          <div className="ph"><div className="t">Kill-chain weighting · {title}</div><div className="s">malicious mix (Σ = 20)</div></div>
+          <PhaseMix mix={mix} />
           <button className="rb-gen" onClick={regenerate}>⟳ Generate new dataset</button>
         </div>
         <div className="panel">
-          <div className="ph"><div className="t">Attack narrative</div><div className="s">what the operator did</div></div>
-          <p className="rb-story">{scn.story}</p>
+          <div className="ph"><div className="t">Attack narrative</div><div className="s">{selected.length === 1 ? 'what the operator did' : `${selected.length} methods combined`}</div></div>
+          <p className="rb-story">{story}</p>
           <div className="rb-stats">
             <div className="rb-stat red"><span className="num">{mal.length}</span><span>malicious</span></div>
             <div className="rb-stat"><span className="num">{benign}</span><span>benign noise</span></div>
@@ -150,10 +159,13 @@ function BluePanel({ result }: { result: ScanResult }): JSX.Element {
 // ---------- PAGE ----------
 export function RedBluePage(): JSX.Element {
   const [tab, setTab] = useState<'red' | 'blue'>('red')
-  const [scenarioKey, setScenarioKey] = useState('ransomware')
+  const [scenarioKeys, setScenarioKeys] = useState<string[]>(['ransomware'])
   const [seed, setSeed] = useState(42)
-  const dataset = useMemo(() => generateDataset(scenarioKey, seed), [scenarioKey, seed])
+  const dataset = useMemo(() => generateDataset(scenarioKeys, seed), [scenarioKeys, seed])
   const result = useMemo(() => scanDataset(dataset), [dataset])
+
+  const toggleScenario = (k: string) => setScenarioKeys((prev) =>
+    prev.includes(k) ? (prev.length > 1 ? prev.filter((x) => x !== k) : prev) : [...prev, k])
 
   return (
     <AppShell title="Red vs Blue" crumb="Northstar · Adversary simulation & detection">
@@ -168,7 +180,7 @@ export function RedBluePage(): JSX.Element {
         </div>
 
         {tab === 'red'
-          ? <RedPanel scenarioKey={scenarioKey} setScenarioKey={setScenarioKey} dataset={dataset} regenerate={() => setSeed((s) => s + 1)} />
+          ? <RedPanel scenarioKeys={scenarioKeys} toggle={toggleScenario} dataset={dataset} regenerate={() => setSeed((s) => s + 1)} />
           : <BluePanel result={result} />}
       </div>
     </AppShell>

