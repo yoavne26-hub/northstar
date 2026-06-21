@@ -103,7 +103,11 @@
   animation:rise .4s ease forwards;transition:transform .18s,box-shadow .18s,border-color .18s,opacity .3s;}
 @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .iss.h{border-left-color:var(--amber);}.iss.m{border-left-color:#D9B400;}
-.iss:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg);}
+/* NB: no transform on hover — a transform creates a stacking context that would
+   trap the inline risk popover (.ri-pop) inside the row and let rows below
+   paint over it. Lift with shadow + border only. */
+.iss:hover{box-shadow:var(--shadow-lg);border-color:var(--border2);}
+.iss:has(.ri-pop){z-index:47;}
 .iss.sel{border-color:var(--teal);box-shadow:0 0 0 2px rgba(27,168,138,.25),var(--shadow);background:#fafffd;}
 .iss.acted{opacity:.6;border-left-color:var(--teal);}
 .itop{display:flex;align-items:center;gap:12px;}

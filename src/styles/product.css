@@ -219,7 +219,7 @@
 
 /* gentle page-load fade (respects reduced-motion via global rule) */
 .content{animation:pagefade .36s ease;}
-@keyframes pagefade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+@keyframes pagefade{from{opacity:0;}to{opacity:1;}}
 
 /* tighten big numerals */
 .kc .kv,.bstat .n,.vtxt{letter-spacing:-.02em;}
