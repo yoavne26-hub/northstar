@@ -1,121 +1,85 @@
-# Northstar — Cloud Runtime Security
+# Northstar
 
-> **See the signal before the crisis.** A cloud‑runtime security (CDR/CNAPP) triage platform that turns an overwhelming stream of detections into a clear **Understand → Decide → Act** workflow for the on‑call analyst.
+> **See the signal before the crisis.**
 
-Northstar is a front‑end product built with **React + TypeScript + Vite**. It started from a product‑discovery brief ("users are drowning in events, charts and alerts — help them understand what matters *right now*") and grew into a full, multi‑page security console with a **tunable risk model**, role‑based access, and two open‑source security projects integrated into it.
+Northstar is an interactive cloud security triage prototype. It brings detections, investigation context, vulnerability prioritization, and adversary simulation into one **Understand → Decide → Act** workflow.
 
-![stack](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)
-![stack](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
-![stack](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white)
+Built with **React 18, TypeScript, and Vite**. The app runs locally with no backend, cloud account, or API key. All telemetry, CVEs, users, and actions are simulated for the demo.
 
----
+![Northstar threat overview showing the status band, health metrics, and detected-versus-resolved trend](docs/screenshots/01-threat-overview.png)
 
-## Quick start
+## The workflow
+
+| Understand | Decide | Act |
+| --- | --- | --- |
+| See the fleet's current state, risk trend, and top contributors. | Filter and rank issues by a tunable risk score. | Open an investigation with the reason, scope, evidence, timeline, and response actions in one place. |
+
+### Decide what needs attention
+
+The issue queue combines severity, behavioral deviation, exposure, asset criticality, and detection confidence. Change the weights in **Settings → Risk scoring** or from a score's inline breakdown; the queue and `PRIORITIZE` / `MONITOR` / `DEFER` verdicts update together. Filter by environment, status, severity, text, and minimum risk, then save the view you need.
+
+![Prioritized issue queue with risk scores, filters, and investigation actions](docs/screenshots/02-prioritized-issues.png)
+
+### Keep the evidence close to the decision
+
+The investigation drawer explains why an alert is abnormal and shows its affected resource, identity, location, evidence, and timeline alongside the available actions.
+
+![Investigation drawer for a reverse shell detection](docs/screenshots/03-investigation-drawer.png)
+
+### Prioritize vulnerabilities in runtime context
+
+The CVE view compares CVSS severity, EPSS exploit probability, CISA KEV status, and whether a vulnerable component is present in the simulated environment. Sort the RES-24 table to see why a CVE receives a `PRIORITIZE`, `MONITOR`, or `DEFER` verdict.
+
+![RES-24 vulnerability table with runtime context and verdicts](docs/screenshots/09-res24-prioritization.png)
+
+### Run Red vs Blue on the same dataset
+
+The Red Team tab generates a labeled command dataset from selectable attack scenarios. The Blue Team tab scans that same dataset with a deterministic rule engine and shows confirmed detections, cases needing review, missed commands, and false positives.
+
+![Red Team attack scenario generator and kill-chain weighting](docs/screenshots/10-red-team.png)
+
+![Blue Team detection results and rule findings](docs/screenshots/12-blue-team.png)
+
+[Browse all 13 screenshots](docs/screenshots/)
+
+## Try it locally
+
+**Requirements:** Node.js 20 or newer and npm.
 
 ```bash
-cd northstar
-npm install
-npm run dev        # http://localhost:5273 (opens automatically)
-npm run build      # type-check (tsc) + production build to dist/
-npm run preview    # serve the production build
+npm ci
+npm run dev
 ```
 
-No backend and no API keys required — every data source is mocked in `src/data/`.
+Open the local address printed by Vite (port **5273** by default). The public product explainer is at `/`; open `/login` to enter the console. Choose **Analyst** for the triage workflow or **Admin** for fleet analytics and user management. Any email also works in this mock sign-in; an address containing `admin` gets the admin role. The Google, Okta SSO, and GitHub buttons are demo shortcuts, not live identity integrations.
 
-### Signing in
-
-Open `/login` and use a **demo role** button, or any email (an address containing `admin` signs you in as an admin):
-
-| Role | Sees |
-|------|------|
-| **Analyst** | Overview · Events · Investigations · CVE Trends · Red vs Blue · Settings |
-| **Admin** | all of the above **plus** Fleet Analytics and user management |
-
-Auth, settings and saved views persist to `localStorage`. Sign out from the avatar menu (top‑right) or **Settings → Account**.
-
----
-
-## What's inside
-
-### The core idea: a tunable risk score
-Every issue's risk score is a **weighted blend of five factors** — action severity, behavioral deviation, internet exposure, asset criticality, and detection confidence. You tune the weights to match how *you* triage:
-
-- **Settings → Risk scoring** — a slider per factor plus "personality" presets (Balanced, Severity‑first, Exposure‑first, Anomaly hunter, Blast‑radius, Low false‑positive).
-- **Inline ⓘ** next to any score — a popover shows that issue's factor breakdown and lets you adjust weights without leaving the page.
-- Every issue also gets a **RES‑24 verdict** — `PRIORITIZE / MONITOR / DEFER` — derived from the score using the same thresholds as the CVE‑Trend model, so the dashboard and CVE views agree. Changing weights re‑ranks the queue *and* moves verdicts live.
-
-### Pages
-
-| Route | What it does |
-|-------|--------------|
-| `/` | Public **Understand → Decide → Act** explainer deck (personas, annotated trend chart, risk‑score table, the GenAI design prompt) ending in an embedded live dashboard. |
-| `/dashboard` | The analyst **triage workspace**: status band, KPI strip, macro trend chart (detected vs resolved + WoW baseline + amber 20 % threshold), advanced filters, and the prioritized issue queue with an investigation drawer. |
-| `/events` | **Activity console** — the raw telemetry stream detections are derived from: severity‑mix donut, filterable/sortable event table, detail modal. |
-| `/investigations` | Full sortable, filterable **case list** with expandable detail. |
-| `/cve-trends` | **"The prioritization crisis"** — CVE volume flood, acceleration, the CVSS×EPSS×KEV money chart, NVD scoring backlog, and a **RES‑24**‑scored, sortable top‑CVE table. |
-| `/red-blue` | **Red vs Blue**, a sub‑tab per team (see below). |
-| `/analytics` | **Admin‑only** fleet analytics: risk over time, MTTR trend, detections by MITRE tactic & environment, severity mix, team performance. |
-| `/settings` | Workspace **modularity** (toggle dashboard widgets), appearance/density, notifications, integrations, risk‑score tuning, and **admin user management** (invite / suspend / delete). |
-
-### Triage interactions
-- **Top‑bar scope** — working **environment** (All / Production / Staging / per‑cluster) and **time‑range** (1 h → 30 d) selectors that filter the whole dashboard and recompute the status band.
-- **Filtering** — severity chips, "needs attention" / "acted" flags, text search, environment & status multi‑select, risk‑score range, sort, and **saved views**.
-- **Grouping** — flat / by environment / by status, collapsible.
-- **Decide & act** — multi‑select rows → floating bulk‑action bar; inline Investigate / Escalate / Ignore; the investigation drawer preserves context (reasoning, scope, evidence, timeline) and offers safe actions with confirmation.
-- **Feedback** — entrance animations, live‑feed stream‑in, toasts, and haptics (`navigator.vibrate`, mobile).
-
-### Red vs Blue
-The two teams are wired into one loop — **Blue scans the exact dataset Red generates**:
-- **Red Team (AttackGen)** — pick one of 10 scenarios → a weighted kill chain (discovery → impact) → 20 malicious commands hidden in benign noise + an attack narrative.
-- **Blue Team (SENTRY)** — a deterministic engine scores those commands against 28 patterns grounded in MITRE ATT&CK / LOLBAS / GTFOBins (HIGH / GRAY / LOW bands) and reports a detection rate, confirmed‑by‑rules table, false positives, and what the rules missed.
-
----
-
-## Tech & architecture
-
-- **Vite + React 18 + TypeScript** (strict). Routing via **react‑router**. Charts are hand‑rolled inline SVG (no chart dependency). Icons are inline SVG components — no emoji as icons.
-- **State** lives in focused hooks/contexts: `useTriage` (filters, grouping, selection, actions, live feed, scoring), `AuthContext` (roles + guards), `SettingsContext` (modularity + risk weights), `ScopeContext` (env + time range).
-- **Design language** — light theme, deep navy `#2B3A66`, teal `#1BA88A`, amber thresholds, crimson criticals; Fredoka display / Nunito body / JetBrains Mono numerics. Tokens in `src/styles/tokens.css`.
-- **Accessibility** — labeled inputs, visible focus, `aria-live` toasts, tabular numerics, and `prefers-reduced-motion` fallbacks.
-
-```
-src/
-  main.tsx · App.tsx              # entry + router + providers
-  auth/        AuthContext        # mock sign-in, roles, persistence
-  settings/    SettingsContext    # modularity, density, risk weights
-  scope/       ScopeContext       # environment + time-range scope
-  hooks/       useTriage · useOrgUsers
-  lib/         risk.ts (weighted score + RES-24 verdict) · icons · haptics
-  data/        mockData · analytics · org · events · cve · redblue
-  components/
-    layout/       AppShell
-    dashboard/    Sidebar, TopBar, StatusBand, KpiStrip, Toolbar, FilterBar,
-                  IssueQueue, IssueRow, BulkActionBar, RecentRail,
-                  RiskInfoPopover, ScopeDropdown, UserMenu, Toast …
-    investigation/ InvestigationDrawer
-    shared/        TrendChart
-    ui/            Toggle
-  pages/         ExplainerPage, DashboardPage, EventsPage, InvestigationsPage,
-                 CveTrendsPage, RedBluePage, AnalyticsPage, SettingsPage, LoginPage
+```bash
+npm run build    # TypeScript check and production build
+npm run preview  # serve the built app locally
 ```
 
-All data is mocked; a service layer could be swapped in behind the hooks without touching the UI.
+There is no server to configure. Demo data lives in `src/data/`; sign-in state, preferences, and saved views use browser `localStorage`.
 
----
+## Explore the console
 
-## Integrations & credits
+| Route | What you'll find |
+| --- | --- |
+| `/` | Public product explainer and embedded dashboard |
+| `/dashboard` | Threat overview, scope controls, risk trend, issue queue, and investigation drawer |
+| `/events` | Searchable activity stream, severity breakdown, and event details |
+| `/investigations` | Sortable cases with expandable evidence and timelines |
+| `/cve-trends` | CVE volume charts, CVSS × EPSS view, and RES-24 ranking |
+| `/red-blue` | AttackGen scenario generator and SENTRY detection results |
+| `/analytics` | Admin-only fleet and team analytics |
+| `/settings` | Risk weights, workspace preferences, integrations, and admin user controls |
 
-Northstar integrates the ideas (and ports the core logic) of several security projects into one product:
+## How it's built
 
-- **AttackGen** — Red‑team attack‑dataset generator (scenario → kill‑chain → labeled command dataset). → `/red-blue` Red tab.
-- **SENTRY (Blueteam_Bootcamp)** — Blue‑team process‑command threat analyst (pattern + correlation scoring, HIGH/GRAY/LOW bands). → `/red-blue` Blue tab.
-- **The Prioritization Crisis (CVE‑Trend)** — CVSS×EPSS×KEV money chart, volume forecast, NVD backlog, and the **RES‑24** runtime‑contextual score. → `/cve-trends`.
-- **PenguWave** — SOC events console (normalized event stream, severity donut, detail modal). → `/events`.
+- **UI:** React 18, React Router, TypeScript in strict mode, Vite 5, hand-drawn SVG charts, and inline SVG icons.
+- **State:** `AuthContext`, `SettingsContext`, and `ScopeContext` provide roles, preferences, and active scope; `useTriage` manages the issue workflow.
+- **Risk model:** `src/lib/risk.ts` calculates weighted scores and RES-24 verdicts from the demo data.
+- **Design:** Light theme with navy, teal, amber, and crimson tokens in `src/styles/tokens.css`; labeled controls, visible focus, live announcements, and reduced-motion fallbacks.
 
-These are reference integrations rebuilt in this app's design system with mock data; credit to the original authors.
+Northstar adapts ideas from **AttackGen**, **SENTRY (Blueteam_Bootcamp)**, **The Prioritization Crisis (CVE-Trend)**, and **PenguWave** into a single demo interface. Their concepts and core logic were rebuilt here with mocked data.
 
----
-
-## Status
-
-Front‑end only, fully mocked, builds clean under TypeScript strict mode. Intended as a product/design + engineering demonstration of runtime‑aware security triage.
+> **Demo scope:** Northstar does not connect to a cloud environment, authenticate real users, collect telemetry, or execute security response actions. Numbers and outcomes shown in the app are illustrative.
