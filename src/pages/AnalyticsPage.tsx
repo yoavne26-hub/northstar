@@ -286,6 +286,7 @@ export function AnalyticsPage() {
             <div className="t">Team performance</div>
             <div className="s">{TEAM_PERFORMANCE.length} teams</div>
           </div>
+          <div className="table-scroll" role="region" aria-label="Team performance" tabIndex={0}>
           <table className="an-table">
             <thead>
               <tr>
@@ -319,6 +320,7 @@ export function AnalyticsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </AppShell>

@@ -27,6 +27,7 @@ function TopCvesTable(): JSX.Element {
           <button key={k} className={`cve-sortbtn${sort === k ? ' on' : ''}`} onClick={() => setSort(k)}>{l}</button>
         ))}
       </div>
+      <div className="table-scroll" role="region" aria-label="Top CVEs" tabIndex={0}>
       <table className="cve-table">
         <thead>
           <tr>
@@ -50,6 +51,7 @@ function TopCvesTable(): JSX.Element {
           ))}
         </tbody>
       </table>
+      </div>
     </>
   )
 }

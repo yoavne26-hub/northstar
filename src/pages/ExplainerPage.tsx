@@ -10,7 +10,7 @@ const SEV_NAME: Record<string, [string, string]> = {
 
 function RiskTable() {
   return (
-    <table className="rtbl">
+    <div className="risk-table-scroll" role="region" aria-label="Sample risk queue" tabIndex={0}><table className="rtbl">
       <thead><tr><th>Score</th><th>Event</th><th>Severity</th><th>Deviation</th><th>Action</th></tr></thead>
       <tbody>
         {ISSUES.slice(0, 4).map((it) => {
@@ -22,12 +22,12 @@ function RiskTable() {
               <td className="ev2">{it.title}</td>
               <td><span className={`sevb ${cls}`}>{name}</span></td>
               <td className="dev">{it.deviation}</td>
-              <td className="tact"><a>Escalate</a><span className="sepd">·</span><a className="ig">Ignore</a></td>
+              <td className="tact">Preview only</td>
             </tr>
           )
         })}
       </tbody>
-    </table>
+    </table></div>
   )
 }
 
@@ -44,7 +44,7 @@ export function ExplainerPage() {
       {/* INTRO */}
       <section className="step" style={{ marginBottom: 54 }}>
         <span className="badge navy">Product Mission</span>
-        <h2 style={{ fontSize: 44, maxWidth: 840 }}>Built around the questions three users actually ask</h2>
+        <h1 className="deck-title">Built around the questions three users actually ask</h1>
         <p className="lead">The challenge was never too little data — it's knowing <b>what matters right now</b>. Every screen below is designed to answer a specific user's question and move them from <span className="t">Understand → Decide → Act</span>.</p>
         <div className="personas">
           <div className="persona primary">

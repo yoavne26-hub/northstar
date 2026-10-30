@@ -123,6 +123,7 @@ export function SettingsPage() {
             <div className="set-h"><h2>User management <span className="admin-pill">Admin</span></h2><p>Members of your organization — {users.length} total.</p>
               <button className="auth-btn invite" style={{ width: 'auto', marginLeft: 'auto' }} onClick={handleInvite}><UserPlus />Invite user</button>
             </div>
+            <div className="table-scroll" role="region" aria-label="User management" tabIndex={0}>
             <table className="org-table">
               <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Team</th><th>Status</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
               <tbody>
@@ -150,6 +151,7 @@ export function SettingsPage() {
                 })}
               </tbody>
             </table>
+            </div>
           </section>
         )}
 

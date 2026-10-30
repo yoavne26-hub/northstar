@@ -15,7 +15,7 @@ export function StatusBand({ criticals, highs, mediums, total, envLabel, assets 
 
   return (
     <div className={`band${atRisk ? '' : ' ok'}`}>
-      <div className="verdict">
+      <div className="band-verdict">
         <span className="vdot" />
         <div>
           <div className="vtxt">{verdict}</div>

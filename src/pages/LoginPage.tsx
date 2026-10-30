@@ -7,22 +7,17 @@ export function LoginPage() {
   const { user, signIn, signInDemo } = useAuth()
   const nav = useNavigate()
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [busy, setBusy] = useState(false)
 
-  if (user) return <Navigate to="/dashboard" replace />
+  if (user) return <Navigate to={user.role === 'admin' ? '/analytics' : '/dashboard'} replace />
 
   const go = (role: Role) => nav(role === 'admin' ? '/analytics' : '/dashboard')
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (!email) return
-    setBusy(true)
     const role: Role = /admin/i.test(email) ? 'admin' : 'analyst'
-    setTimeout(() => {
-      signIn({ name: email.split('@')[0].replace(/[._-]+/g, ' '), email, role, initials: initialsFromEmail(email) })
-      go(role)
-    }, 500)
+    signIn({ name: email.split('@')[0].replace(/[._-]+/g, ' '), email, role, initials: initialsFromEmail(email) })
+    go(role)
   }
 
   const demo = (role: Role) => { signInDemo(role); go(role) }
@@ -32,7 +27,8 @@ export function LoginPage() {
       <div className="auth-hero">
         <div className="brand light"><span className="bm"><Shield /></span>Northstar</div>
         <h1>See the signal<br />before the crisis.</h1>
-        <p>Real-time cloud runtime security. Understand → Decide → Act, in one workspace.</p>
+        <p>Explore a sample cloud security workspace. Understand → Decide → Act, in one place.</p>
+        <span className="auth-sample">Sample workspace data</span>
         <div className="auth-stats">
           <div><b className="num">412</b><span>assets monitored</span></div>
           <div><b className="num">2h 41m</b><span>median MTTR</span></div>
@@ -42,32 +38,25 @@ export function LoginPage() {
 
       <div className="auth-form-wrap">
         <div className="auth-card">
-          <h2>Sign in to Northstar</h2>
-          <p className="auth-sub">Use any email to continue, or pick a demo role.</p>
+          <h2>Explore Northstar</h2>
+          <p className="auth-sub">Open the local demo with any email, or choose a sample role.</p>
 
           <form onSubmit={submit}>
-            <label className="field"><span>Work email</span>
+            <label className="field"><span>Demo email</span>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" autoComplete="email" required />
             </label>
-            <label className="field"><span>Password</span>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
-            </label>
-            <button className="auth-btn" type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+            <button className="auth-btn" type="submit">Continue to demo</button>
           </form>
 
-          <div className="auth-or"><span>or continue with</span></div>
-          <div className="sso">
-            <button className="sso-btn" onClick={() => demo('analyst')}>Google</button>
-            <button className="sso-btn" onClick={() => demo('analyst')}>Okta SSO</button>
-            <button className="sso-btn" onClick={() => demo('analyst')}>GitHub</button>
-          </div>
+          <p className="auth-note">No password needed. An address containing “admin” opens the admin view.</p>
+          <div className="auth-or"><span>or try a sample role</span></div>
 
           <div className="demo-row">
-            <button className="demo-btn" onClick={() => demo('analyst')}>
-              <span className="dr-role">Analyst</span><span className="dr-desc">triage workspace</span>
+            <button className="demo-btn" type="button" onClick={() => demo('analyst')}>
+              <span className="dr-role">Analyst demo</span><span className="dr-desc">Triage workspace</span>
             </button>
-            <button className="demo-btn admin" onClick={() => demo('admin')}>
-              <Bolt /><span className="dr-role">Admin</span><span className="dr-desc">+ fleet analytics</span>
+            <button className="demo-btn admin" type="button" onClick={() => demo('admin')}>
+              <Bolt /><span className="dr-role">Admin demo</span><span className="dr-desc">Fleet analytics</span>
             </button>
           </div>
         </div>

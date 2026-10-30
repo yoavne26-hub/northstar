@@ -24,7 +24,7 @@ export function IssueRow({ issue: it, selected, actedLabel, onToggle, onInvestig
   return (
     <div className={cls} onClick={() => onToggle(it.id)}>
       <div className="itop">
-        <span className="chk" onClick={(e) => { stop(e); onToggle(it.id) }}><Check /></span>
+        <button type="button" className="chk" aria-label={`Select ${it.title}`} aria-pressed={selected} onClick={(e) => { stop(e); onToggle(it.id) }}><Check /></button>
         <span className="rk">{it.rank}</span>
         <span className={`sev ${sc}`}>{it.severity.toUpperCase()}</span>
         <span className="ttl">{it.title}</span>
